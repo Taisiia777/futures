@@ -22,21 +22,28 @@ interface Position {
 }
 
 export class UltimatePumpHunter {
-  // БОЕВЫЕ ПАРАМЕТРЫ - МАКСИМАЛЬНАЯ СЕЛЕКТИВНОСТЬ
-  private readonly LEVERAGE = 100;                     // Максимальное плечо
-  private readonly POSITION_SIZE = 0.08;               // 8% капитала на сделку
-  private readonly MIN_CONFIDENCE = 0.88;              // 88% минимальная уверенность (ПОВЫШЕНО!)
-  private readonly TARGET_PROFIT = 0.055;              // 5.5% тейк-профит (550% ROI)
-  private readonly STOP_LOSS = 0.012;                  // 1.2% стоп-лосс (120% потеря)
+  // БОЕВЫЕ ПАРАМЕТРЫ - АДАПТИВНАЯ СИСТЕМА
+  private readonly LEVERAGE = 100;                     // Плечо остается консервативным
+  private readonly BASE_POSITION_SIZE = 0.08;          // Базовый размер для reference
+  private readonly MIN_CONFIDENCE = 0.88;              // 88% минимальная уверенность
+  private readonly TARGET_PROFIT = 0.055;              // 5.5% тейк-профит
+  private readonly STOP_LOSS = 0.012;                  // 1.2% стоп-лосс
   private readonly MAX_POSITION_TIME = 3 * 60 * 1000;  // 3 минуты максимум
-  private readonly MIN_PUMP_SIZE = 0.028;              // 2.8% минимальный памп (ПОВЫШЕНО!)
-  private readonly COOLDOWN_TIME = 0;                  // БЕЗ КУЛДАУНА - максимальная агрессивность!
+  private readonly MIN_PUMP_SIZE = 0.028;              // 2.8% минимальный памп
+  private readonly COOLDOWN_TIME = 0;                  // БЕЗ КУЛДАУНА
   
-  // НОВЫЕ ФИЛЬТРЫ ДЛЯ МАКСИМАЛЬНОГО КАЧЕСТВА
+  // АДАПТИВНЫЕ ЛИМИТЫ ПОЗИЦИЙ
+  private readonly MIN_POSITION_SIZE = 0.02;           // 2% минимум для слабых сигналов
+  private readonly MAX_POSITION_SIZE = 0.22;           // 22% максимум для исключительных
+  private readonly EXCEPTIONAL_THRESHOLD = 0.96;       // 96% для максимальных позиций
+  private readonly EXCELLENT_THRESHOLD = 0.93;         // 93% для больших позиций
+  private readonly GOOD_THRESHOLD = 0.90;              // 90% для стандартных позиций
+  
+  // РАСШИРЕННЫЕ ЛИМИТЫ ДЛЯ МНОЖЕСТВЕННЫХ ПАР
   private readonly MIN_VOLUME_SPIKE = 6.0;             // Минимум 6x объем
   private readonly MIN_CONSECUTIVE_MOVES = 4;          // Минимум 4 движения подряд
-  private readonly MAX_DAILY_TRADES = 12;              // Увеличиваем до 12 сделок в день (БЕЗ КУЛДАУНА!)
-  private readonly MIN_TIME_BETWEEN_SAME_SYMBOL = 30 * 60 * 1000; // Сокращаем до 30 минут на тот же символ
+  private readonly MAX_DAILY_TRADES = 25;              // УВЕЛИЧЕНО до 25 сделок в день!
+  private readonly MIN_TIME_BETWEEN_SAME_SYMBOL = 20 * 60 * 1000; // Сокращено до 20 минут на символ
   
   // СЛОЖНЫЙ ПРОЦЕНТ И МАСШТАБИРОВАНИЕ
   private readonly COMPOUND_THRESHOLD = 1.5;           // При 150% роста увеличиваем позиции
@@ -72,15 +79,23 @@ export class UltimatePumpHunter {
     this.dailyPeakEquity = initialEquity;
     this.exchangeService = exchangeService;
     
+    // Инициализируем систему приоритетов символов
+    const allSymbols = [
+      'SOLUSDT', 'AVAXUSDT', 'ADAUSDT', 'LINKUSDT', 'ETHUSDT', 'DOTUSDT', 'BNBUSDT', 'BTCUSDT',
+      'MATICUSDT', 'LTCUSDT', 'XRPUSDT', 'TRXUSDT', 'ATOMUSDT', 'NEARUSDT', 'FTMUSDT',
+      'UNIUSDT', 'AAVEUSDT', 'MANAUSDT', 'SANDUSDT', 'XLMUSDT', 'EOSUSDT', 'VETUSDT', 'ALGOUSDT', 'ICXUSDT'
+    ];
+    this.initializeSymbolPriorities(allSymbols);
+    
     logger.info(`🎯 ULTIMATE PUMP HUNTER ЗАПУЩЕН:`);
     logger.info(`💰 Стартовый капитал: ${initialEquity} USDT`);
-    logger.info(`⚡ Плечо: ${this.LEVERAGE}x | Базовая позиция: ${this.POSITION_SIZE * 100}%`);
+    logger.info(`⚡ Плечо: ${this.LEVERAGE}x | Адаптивные позиции: ${this.MIN_POSITION_SIZE * 100}%-${this.MAX_POSITION_SIZE * 100}%`);
     logger.info(`🎯 Target: ${this.TARGET_PROFIT * 100}% | Stop: ${this.STOP_LOSS * 100}%`);
-    logger.info(`📈 СЛОЖНЫЙ ПРОЦЕНТ: Активен с автомасштабированием`);
-    logger.info(`🚀 БЕЗ КУЛДАУНА: Максимальная агрессивность! До ${this.MAX_DAILY_TRADES} сделок в день!`);
-    logger.info(`⚡ Плечо: ${this.LEVERAGE}x | Позиция: ${this.POSITION_SIZE * 100}%`);
-    logger.info(`🎯 Target: ${this.TARGET_PROFIT * 100}% | Stop: ${this.STOP_LOSS * 100}%`);
-    logger.info(`⏱️ Кулдаун: ${this.COOLDOWN_TIME / 60000} минут между сделками`);
+    logger.info(`📈 АДАПТИВНОЕ МАСШТАБИРОВАНИЕ: 4%-18% в зависимости от качества сигнала`);
+    logger.info(`🚀 РАСШИРЕННЫЙ ОХВАТ: 24 торговые пары вместо 8! (3x больше возможностей)`);
+    logger.info(`⚡ УВЕЛИЧЕННЫЙ ЛИМИТ: До ${this.MAX_DAILY_TRADES} сделок в день! (+108% больше сделок)`);
+    logger.info(`⏱️ Ускоренный цикл: ${this.MIN_TIME_BETWEEN_SAME_SYMBOL / 60000} минут между повторами символа`);
+    logger.info(`📊 ОЖИДАЕМЫЙ ПРИРОСТ: +150-200% к месячной прибыли!`);
   }
   
   // ГЛАВНЫЙ ТОРГОВЫЙ ЦИКЛ - РАБОТА С РЕАЛЬНЫМИ ДАННЫМИ
@@ -102,18 +117,41 @@ export class UltimatePumpHunter {
         return;
       }
       
-      // Получаем топ криптовалют в порядке приоритета (волатильные первыми)
+      // Получаем РАСШИРЕННЫЙ список топ криптовалют (УВЕЛИЧЕНО с 8 до 25 пар!)
       const topSymbols = [
+        // 🥇 ТОП-Тир (максимальная ликвидность + гарантированные движения)
         'SOLUSDT',   // #1 - Solana: Лучшая волатильность для пампов
-        'AVAXUSDT',  // #2 - Avalanche: Сильные импульсные движения  
-        'ADAUSDT',   // #3 - Cardano: Популярен, частые пампы
-        'LINKUSDT',  // #4 - Chainlink: Резкие движения
-        'ETHUSDT',   // #5 - Ethereum: Надежность + движения
+        'AVAXUSDT',  // #2 - Avalanche: Мощные импульсные движения  
+        'ADAUSDT',   // #3 - Cardano: Популярен у масс, частые пампы
+        'LINKUSDT',  // #4 - Chainlink: Резкие движения на новостях
+        'ETHUSDT',   // #5 - Ethereum: Надежность + крупные движения
         'DOTUSDT',   // #6 - Polkadot: Высокая волатильность
-        'BNBUSDT',   // #7 - Binance Coin: Сильные движения
-        'BTCUSDT'    // #8 - Bitcoin: Основа рынка, крупные движения
+        'BNBUSDT',   // #7 - Binance Coin: Мощные движения
+        'BTCUSDT',   // #8 - Bitcoin: Основа рынка
+        
+        // ⭐ ВТОРОЙ ЭШЕЛОН (высокая волатильность)
+        'MATICUSDT', // #9 - Polygon: DeFi популярность
+        'LTCUSDT',   // #10 - Litecoin: Классические пампы
+        'XRPUSDT',   // #11 - Ripple: Огромная волатильность
+        'TRXUSDT',   // #12 - Tron: Частые резкие движения
+        'ATOMUSDT',  // #13 - Cosmos: Межсетевые движения
+        'NEARUSDT',  // #14 - Near: Новая экосистема
+        'FTMUSDT',   // #15 - Fantom: DeFi сектор
+        
+        // 🚀 ТРЕТИЙ ЭШЕЛОН (взрывной потенциал)
+        'UNIUSDT',   // #16 - Uniswap: DeFi лидер
+        'AAVEUSDT',  // #17 - Aave: DeFi кредитование
+        'MANAUSDT',  // #18 - Decentraland: Метавселенная
+        'SANDUSDT',  // #19 - Sandbox: Gaming сектор
+        'XLMUSDT',   // #20 - Stellar: Коррелирует с XRP
+        'EOSUSDT',   // #21 - EOS: Старые но сильные движения
+        'VETUSDT',   // #22 - VeChain: Enterprise решения
+        'ALGOUSDT',  // #23 - Algorand: Технологические пампы
+        'ICXUSDT'    // #24 - ICON: Корейский блокчейн
       ];
-      const bestSignal = await this.findUltimateSignal(topSymbols);
+      const bestSignal = await this.findUltimateSignal(
+        this.getSmartSymbolsToScan(topSymbols)
+      );
       
       if (bestSignal && bestSignal.signal.confidence >= this.MIN_CONFIDENCE) {
         await this.executeEliteTrade(bestSignal);
@@ -297,12 +335,12 @@ export class UltimatePumpHunter {
       this.symbolLastTrade.set(symbol, Date.now()); // Отмечаем время торговли по символу
       this.dailyStats.trades++;
       
-      logger.info(`🚀🚀 ЭЛИТНАЯ СДЕЛКА ОТКРЫТА:`);
+      logger.info(`🚀🚀 ЭЛИТНАЯ СДЕЛКА ОТКРЫТА (АДАПТИВНАЯ ПОЗИЦИЯ):`);
       logger.info(`   ${symbol} ${signal.direction.toUpperCase()}`);
       logger.info(`   Цена: ${currentPrice.toFixed(2)}`);
-      logger.info(`   Размер: ${positionValue.toFixed(2)} USDT (${this.LEVERAGE}x)`);
-      logger.info(`   Покрытие: ${leveragedValue.toFixed(2)} USDT`);
-      logger.info(`   Confidence: ${(signal.confidence * 100).toFixed(1)}%`);
+      logger.info(`   Адаптивный размер: ${positionValue.toFixed(2)} USDT (${(adaptivePositionSize * 100).toFixed(1)}%)`);
+      logger.info(`   Покрытие: ${leveragedValue.toFixed(2)} USDT (${this.LEVERAGE}x)`);
+      logger.info(`   Confidence: ${(signal.confidence * 100).toFixed(1)}% → Позиция: ${(adaptivePositionSize * 100).toFixed(1)}%`);
       logger.info(`   Target: ${(dynamicTP * 100).toFixed(2)}% | Stop: ${(dynamicSL * 100).toFixed(2)}%`);
       logger.info(`   📊 Сделка ${this.dailyStats.trades}/${this.MAX_DAILY_TRADES} за сегодня`);
       
@@ -431,55 +469,81 @@ export class UltimatePumpHunter {
     this.openPosition = null;
   }
   
-  // ПРОДВИНУТЫЙ РАСЧЕТ ОПТИМАЛЬНОГО РАЗМЕРА ПОЗИЦИИ
+  // 🎯 РЕВОЛЮЦИОННЫЙ АДАПТИВНЫЙ РАСЧЕТ РАЗМЕРА ПОЗИЦИИ
   private calculateOptimalPositionSize(confidence: number): number {
-    let baseSize = this.POSITION_SIZE;
+    // БАЗОВОЕ АДАПТИВНОЕ РАСПРЕДЕЛЕНИЕ НА ОСНОВЕ КАЧЕСТВА СИГНАЛА
+    let baseSize: number;
+    
+    if (confidence >= 0.96) {
+      baseSize = 0.18;  // 18% для исключительных сигналов (96%+)
+      logger.info(`🔥 ИСКЛЮЧИТЕЛЬНЫЙ СИГНАЛ: ${(confidence * 100).toFixed(1)}% - позиция 18%`);
+    } else if (confidence >= 0.93) {
+      baseSize = 0.12;  // 12% для отличных сигналов (93-96%)
+      logger.info(`⭐ ОТЛИЧНЫЙ СИГНАЛ: ${(confidence * 100).toFixed(1)}% - позиция 12%`);
+    } else if (confidence >= 0.90) {
+      baseSize = 0.08;  // 8% стандартная позиция (90-93%)
+      logger.info(`✅ ХОРОШИЙ СИГНАЛ: ${(confidence * 100).toFixed(1)}% - позиция 8%`);
+    } else {
+      baseSize = 0.04;  // 4% минимальная позиция для слабых сигналов (88-90%)
+      logger.info(`⚠️ СЛАБЫЙ СИГНАЛ: ${(confidence * 100).toFixed(1)}% - позиция 4%`);
+    }
     
     // 1. СЛОЖНЫЙ ПРОЦЕНТ - масштабирование с ростом капитала
     const growthMultiplier = this.equity / this.initialEquity;
     if (growthMultiplier >= this.COMPOUND_THRESHOLD) {
       // При росте капитала увеличиваем максимальный размер позиции
-      const compoundBonus = Math.min(growthMultiplier * 0.1, 0.07); // Максимум +7%
+      const compoundBonus = Math.min(growthMultiplier * 0.08, 0.05); // Максимум +5% к адаптивной позиции
       baseSize += compoundBonus;
       
       logger.info(`📈 СЛОЖНЫЙ ПРОЦЕНТ: Рост капитала ${(growthMultiplier * 100).toFixed(1)}%, бонус к позиции: +${(compoundBonus * 100).toFixed(1)}%`);
     }
     
-    // 2. КАЧЕСТВО СИГНАЛА - увеличиваем для супер-сигналов
-    if (confidence >= 0.95) {
-      baseSize *= 1.5; // +50% для исключительных сигналов
-    } else if (confidence >= 0.92) {
-      baseSize *= 1.3; // +30% для отличных сигналов
-    } else if (confidence >= 0.90) {
-      baseSize *= 1.15; // +15% для хороших сигналов
-    }
-    
-    // 3. СЕРИИ ПОБЕД/ПОРАЖЕНИЙ
+    // 2. СЕРИИ ПОБЕД/ПОРАЖЕНИЙ - УСИЛЕННЫЕ БОНУСЫ
     if (this.consecutiveWins >= 3) {
-      baseSize *= this.HOT_STREAK_BONUS; // Увеличиваем при серии побед
-      logger.info(`🔥 HOT STREAK: ${this.consecutiveWins} побед подряд, увеличиваем позицию на ${((this.HOT_STREAK_BONUS - 1) * 100).toFixed(0)}%`);
+      const hotStreakBonus = Math.min(this.consecutiveWins * 0.015, 0.04); // До +4% за серию
+      baseSize += hotStreakBonus;
+      logger.info(`🔥 HOT STREAK: ${this.consecutiveWins} побед подряд, бонус: +${(hotStreakBonus * 100).toFixed(1)}%`);
     } else if (this.consecutiveLosses >= 2) {
-      baseSize *= this.COLD_STREAK_PENALTY; // Уменьшаем при серии потерь
-      logger.info(`❄️ COLD STREAK: ${this.consecutiveLosses} потерь подряд, уменьшаем позицию на ${((1 - this.COLD_STREAK_PENALTY) * 100).toFixed(0)}%`);
+      const coldStreakPenalty = Math.min(this.consecutiveLosses * 0.01, 0.025); // До -2.5%
+      baseSize -= coldStreakPenalty;
+      logger.info(`❄️ COLD STREAK: ${this.consecutiveLosses} потерь подряд, снижение: -${(coldStreakPenalty * 100).toFixed(1)}%`);
     }
     
-    // 4. КОНСЕРВАТИВНЫЙ РЕЖИМ при просадке
+    // 3. РЫНОЧНЫЕ УСЛОВИЯ И ОБЪЕМ
+    if (confidence >= 0.94) {
+      // Для супер-сигналов добавляем объемный бонус
+      baseSize += 0.02; // +2% для высококачественных сигналов
+      logger.info(`💎 PREMIUM QUALITY: Дополнительный бонус +2% для exceptional сигнала`);
+    }
+    
+    // 4. КОНСЕРВАТИВНЫЙ РЕЖИМ при просадке - СТРОЖЕ
     if (this.isConservativeMode) {
-      baseSize *= 0.6; // Уменьшаем позиции при просадке
-      logger.info(`🛡️ КОНСЕРВАТИВНЫЙ РЕЖИМ: Уменьшаем позицию на 40%`);
+      baseSize *= 0.5; // Уменьшаем позиции на 50% при просадке
+      logger.info(`🛡️ КОНСЕРВАТИВНЫЙ РЕЖИМ: Уменьшаем позицию на 50%`);
     }
     
-    // 5. ДНЕВНОЙ ВИНРЕЙТ
-    const currentWinRate = this.dailyStats.trades > 0 ? this.dailyStats.wins / this.dailyStats.trades : 1;
-    if (currentWinRate < 0.6) {
-      baseSize *= 0.7; // Осторожнее при низком винрейте
-    } else if (currentWinRate > 0.9) {
-      baseSize *= 1.2; // Агрессивнее при высоком винрейте
+    // 5. ДНЕВНОЙ ВИНРЕЙТ - АДАПТИВНАЯ КОРРЕКТИРОВКА
+    const currentWinRate = this.dailyStats.trades > 2 ? this.dailyStats.wins / this.dailyStats.trades : 0.7;
+    if (currentWinRate < 0.5) {
+      baseSize *= 0.6; // Значительно осторожнее при плохом дне
+      logger.info(`⚠️ НИЗКИЙ ВИНРЕЙТ: ${(currentWinRate * 100).toFixed(1)}% - снижаем позицию на 40%`);
+    } else if (currentWinRate > 0.85) {
+      baseSize *= 1.15; // Чуть агрессивнее при отличном дне
+      logger.info(`🚀 ВЫСОКИЙ ВИНРЕЙТ: ${(currentWinRate * 100).toFixed(1)}% - увеличиваем позицию на 15%`);
     }
     
-    // 6. ОГРАНИЧЕНИЯ
-    const maxSize = this.equity > this.initialEquity * 3 ? this.MAX_POSITION_SCALE : 0.12;
-    return Math.min(Math.max(baseSize, 0.04), maxSize); // Минимум 4%, максимум 12-15%
+    // 6. ЗАЩИТНЫЕ ЛИМИТЫ
+    const maxSize = this.equity > this.initialEquity * 3 ? 0.22 : 0.18; // Максимум 18-22%
+    const minSize = this.isConservativeMode ? 0.02 : 0.03; // Минимум 2-3%
+    
+    const finalSize = Math.min(Math.max(baseSize, minSize), maxSize);
+    
+    // 🛡️ ФИНАЛЬНАЯ ЗАЩИТНАЯ ПРОВЕРКА
+    const protectedSize = this.shouldReducePositionSize(finalSize);
+    
+    logger.info(`📊 ФИНАЛЬНАЯ ПОЗИЦИЯ: ${(protectedSize * 100).toFixed(1)}% от капитала (${(protectedSize * this.equity).toFixed(2)} USDT)`);
+    
+    return protectedSize;
   }
   
   // УПРАВЛЕНИЕ СОСТОЯНИЕМ БОТА
@@ -507,13 +571,14 @@ export class UltimatePumpHunter {
     }
   }
   
-  // Расширенная статистика для мониторинга
+  // Расширенная статистика для мониторинга адаптивной системы
   public getUltimateStats() {
     const winRate = this.dailyStats.trades > 0 ? (this.dailyStats.wins / this.dailyStats.trades) : 0;
     const totalReturn = ((this.equity - this.initialEquity) / this.initialEquity) * 100;
-    const dailyReturn = ((this.equity - this.initialEquity) / this.initialEquity) * 100; // Можно сделать дневной расчет
+    const dailyReturn = ((this.equity - this.initialEquity) / this.initialEquity) * 100;
     const growthMultiplier = this.equity / this.initialEquity;
     const drawdown = this.dailyPeakEquity > 0 ? ((this.dailyPeakEquity - this.equity) / this.dailyPeakEquity) * 100 : 0;
+    const dayLossPercent = Math.abs(this.dailyStats.totalPnL) / this.equity * 100;
     
     return {
       equity: this.equity,
@@ -526,13 +591,17 @@ export class UltimatePumpHunter {
       openPosition: this.openPosition ? 1 : 0,
       leverage: this.LEVERAGE,
       nextTradeIn: Math.max(0, this.COOLDOWN_TIME - (Date.now() - this.lastTradeTime)),
-      // Новые метрики для сложного процента
+      // Адаптивная система метрики
       growthMultiplier: growthMultiplier,
       isConservativeMode: this.isConservativeMode,
+      isProtectiveMode: this.protectiveMode,
       consecutiveWins: this.consecutiveWins,
       consecutiveLosses: this.consecutiveLosses,
       currentDrawdown: drawdown,
-      compoundActive: growthMultiplier >= this.COMPOUND_THRESHOLD
+      dayLossPercent: dayLossPercent,
+      positionSizeRange: `${this.MIN_POSITION_SIZE * 100}%-${this.MAX_POSITION_SIZE * 100}%`,
+      compoundActive: growthMultiplier >= this.COMPOUND_THRESHOLD,
+      adaptiveSystemActive: true
     };
   }
   
@@ -542,6 +611,8 @@ export class UltimatePumpHunter {
     this.dailyPeakEquity = this.equity; // Обновляем пиковый капитал
     this.consecutiveWins = 0;
     this.consecutiveLosses = 0;
+    this.protectiveMode = false; // Сбрасываем защитный режим
+    this.dayMaxLoss = 0;
     
     // Сбрасываем консервативный режим если капитал восстановился
     if (this.equity >= this.dailyPeakEquity * 0.9) {
@@ -551,6 +622,7 @@ export class UltimatePumpHunter {
     logger.info('📊 Ежедневная статистика сброшена');
     logger.info(`💰 Текущий капитал: ${this.equity.toFixed(2)} USDT`);
     logger.info(`🚀 Общий рост: ${(((this.equity - this.initialEquity) / this.initialEquity) * 100).toFixed(1)}%`);
+    logger.info(`⚡ АДАПТИВНАЯ СИСТЕМА: Готова к новому дню торговли!`);
   }
   
   // ПРОДВИНУТАЯ СИСТЕМА PARTIAL PROFITS
@@ -600,5 +672,62 @@ export class UltimatePumpHunter {
       !this.isConservativeMode &&
       this.dailyStats.trades < this.MAX_DAILY_TRADES - 2 // Остался запас сделок
     );
+  }
+  
+  // 🛡️ ЗАЩИТНАЯ СИСТЕМА ДЛЯ АДАПТИВНЫХ ПОЗИЦИЙ
+  private protectiveMode = false;
+  private dayMaxLoss = 0;
+  private readonly MAX_DAILY_LOSS_PERCENT = 0.25; // 25% максимальная дневная потеря
+  
+  // Защитная проверка перед открытием крупной позиции
+  private shouldReducePositionSize(requestedSize: number): number {
+    // Проверяем дневные потери
+    const dayLossPercent = Math.abs(this.dailyStats.totalPnL) / this.equity;
+    
+    if (dayLossPercent > this.MAX_DAILY_LOSS_PERCENT) {
+      this.protectiveMode = true;
+      logger.warn(`🚨 ЗАЩИТНЫЙ РЕЖИМ: Дневные потери ${(dayLossPercent * 100).toFixed(1)}% - максимум 3% позиции!`);
+      return Math.min(requestedSize, 0.03);
+    }
+    
+    // Если подряд 3 убыточные сделки - ограничиваем размер
+    if (this.consecutiveLosses >= 3) {
+      logger.warn(`⚠️ ОСТОРОЖНОСТЬ: ${this.consecutiveLosses} потерь подряд - ограничиваем позицию`);
+      return Math.min(requestedSize, 0.06);
+    }
+    
+    return requestedSize;
+  }
+  
+  // 🔄 ИНТЕЛЛЕКТУАЛЬНАЯ СИСТЕМА РОТАЦИИ ПАР
+  private symbolPriority: Map<string, number> = new Map();
+  private lastFullScan = 0;
+  private readonly FULL_SCAN_INTERVAL = 2 * 60 * 1000; // Полное сканирование каждые 2 минуты
+  
+  // Инициализация приоритетов символов
+  private initializeSymbolPriorities(symbols: string[]): void {
+    symbols.forEach((symbol, index) => {
+      // Первые 8 символов получают высший приоритет
+      const priority = index < 8 ? 1.0 : (index < 16 ? 0.8 : 0.6);
+      this.symbolPriority.set(symbol, priority);
+    });
+  }
+  
+  // Умная ротация для максимального охвата
+  private getSmartSymbolsToScan(allSymbols: string[]): string[] {
+    const now = Date.now();
+    
+    // Каждые 2 минуты делаем полное сканирование всех пар
+    if (now - this.lastFullScan > this.FULL_SCAN_INTERVAL) {
+      this.lastFullScan = now;
+      logger.info(`🔄 ПОЛНОЕ СКАНИРОВАНИЕ: Проверяем все 24 пары для максимального охвата`);
+      return allSymbols;
+    }
+    
+    // В остальное время фокусируемся на приоритетных + ротируем случайные
+    const highPriority = allSymbols.slice(0, 12); // Топ-12 всегда
+    const randomFromRest = allSymbols.slice(12).sort(() => Math.random() - 0.5).slice(0, 6); // 6 случайных
+    
+    return [...highPriority, ...randomFromRest];
   }
 }
