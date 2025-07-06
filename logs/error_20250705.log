@@ -1,0 +1,76 @@
+=== ERROR LOGS 2025-07-05T22:43:40.072Z ===
+=== ERROR LOGS 2025-07-05T22:45:14.634Z ===
+[ERROR] 2025-07-05T22:45:35.195Z: Ошибка получения свечей для LINKUSDT: read ECONNRESET
+[ERROR] 2025-07-05T22:45:35.195Z: ❌ Ошибка анализа сигнала для LINKUSDT: read ECONNRESET
+[ERROR] 2025-07-05T22:45:58.051Z: Ошибка получения свечей для LTCUSDT: read EHOSTUNREACH
+[ERROR] 2025-07-05T22:45:58.052Z: ❌ Ошибка анализа сигнала для LTCUSDT: read EHOSTUNREACH
+[ERROR] 2025-07-06T01:11:04.017Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T01:11:04.018Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T01:11:05.872Z: Ошибка получения свечей для LTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T01:11:05.873Z: ❌ Ошибка анализа сигнала для LTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T02:04:48.802Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T02:04:48.802Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T02:22:18.941Z: Ошибка получения свечей для BNBUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T02:22:18.941Z: ❌ Ошибка анализа сигнала для BNBUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T02:54:14.299Z: Ошибка получения свечей для LTCUSDT: read ECONNRESET
+[ERROR] 2025-07-06T02:54:14.300Z: ❌ Ошибка анализа сигнала для LTCUSDT: read ECONNRESET
+[ERROR] 2025-07-06T02:54:18.437Z: Ошибка получения свечей для BNBUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T02:54:18.438Z: ❌ Ошибка анализа сигнала для BNBUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:05:44.543Z: Ошибка получения свечей для ADAUSDT: read ECONNRESET
+[ERROR] 2025-07-06T03:05:44.544Z: ❌ Ошибка анализа сигнала для ADAUSDT: read ECONNRESET
+[ERROR] 2025-07-06T03:05:53.718Z: Ошибка получения свечей для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:05:53.719Z: ❌ Ошибка анализа сигнала для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:23:07.331Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:23:07.332Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:40:11.863Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:40:11.864Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:40:13.354Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T03:40:13.354Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:06:50.125Z: Ошибка получения свечей для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:06:50.126Z: ❌ Ошибка анализа сигнала для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:06:55.474Z: Ошибка получения свечей для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:06:55.475Z: ❌ Ошибка анализа сигнала для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:22:38.030Z: Ошибка получения свечей для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:22:38.031Z: ❌ Ошибка анализа сигнала для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:38:20.576Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:38:20.576Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:54:47.081Z: Ошибка получения свечей для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:54:47.082Z: ❌ Ошибка анализа сигнала для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:54:47.116Z: Ошибка получения свечей для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:54:47.117Z: ❌ Ошибка анализа сигнала для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:54:47.662Z: Ошибка получения свечей для ETHUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T04:54:47.664Z: ❌ Ошибка анализа сигнала для ETHUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:07:43.994Z: Ошибка получения свечей для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:07:43.994Z: ❌ Ошибка анализа сигнала для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:07:45.050Z: Ошибка получения свечей для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:07:45.051Z: ❌ Ошибка анализа сигнала для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:24:14.372Z: Ошибка получения свечей для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:24:14.373Z: ❌ Ошибка анализа сигнала для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:24:16.101Z: Ошибка получения свечей для BTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T05:24:16.102Z: ❌ Ошибка анализа сигнала для BTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:08:49.094Z: Ошибка получения свечей для ETHUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:08:49.095Z: ❌ Ошибка анализа сигнала для ETHUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:08:49.110Z: Ошибка получения свечей для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:08:49.111Z: ❌ Ошибка анализа сигнала для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:10:12.700Z: Ошибка получения свечей для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:10:12.700Z: ❌ Ошибка анализа сигнала для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:10:17.959Z: Ошибка получения свечей для LTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:10:17.960Z: ❌ Ошибка анализа сигнала для LTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:10:19.298Z: Ошибка получения свечей для LTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:10:19.299Z: ❌ Ошибка анализа сигнала для LTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:44:39.790Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:44:39.790Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:44:41.906Z: Ошибка получения свечей для BNBUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T06:44:41.906Z: ❌ Ошибка анализа сигнала для BNBUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:01:01.647Z: Ошибка получения свечей для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:01:01.648Z: ❌ Ошибка анализа сигнала для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:09:45.549Z: Ошибка получения свечей для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:09:45.550Z: ❌ Ошибка анализа сигнала для LINKUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:25:24.941Z: Ошибка получения свечей для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:25:24.942Z: ❌ Ошибка анализа сигнала для SOLUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:43:22.361Z: Ошибка получения свечей для BTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:43:22.365Z: ❌ Ошибка анализа сигнала для BTCUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:43:40.159Z: Ошибка получения свечей для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:43:40.160Z: ❌ Ошибка анализа сигнала для ADAUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:43:45.439Z: Ошибка получения свечей для DOTUSDT: read ETIMEDOUT
+[ERROR] 2025-07-06T07:43:45.440Z: ❌ Ошибка анализа сигнала для DOTUSDT: read ETIMEDOUT

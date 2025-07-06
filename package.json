@@ -1,0 +1,32 @@
+{
+  "name": "trading-bot",
+  "version": "1.0.0",
+  "description": "Alpha-Hunt v4 - HFT strategy for CEX futures",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src/app.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "docker:build": "docker build -t alpha-hunt-v4 .",
+    "docker:run": "docker run --env-file .env alpha-hunt-v4"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "date-fns": "^2.30.0",
+    "dotenv": "^16.3.1",
+    "prom-client": "^15.0.0",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@types/ws": "^8.5.9",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT"
+}
