@@ -35,16 +35,26 @@ const startTradingBot = async () => {
         };
         // Запускаем цикл каждые 5 секунд (оптимально для памп-хантинга)
         setInterval(tradingLoop, 5000);
-        // Статистика каждые 30 секунд
+        // Расширенная статистика каждые 30 секунд
         setInterval(() => {
             const stats = strategy.getUltimateStats();
-            logger_1.default.info(`📊 Статистика:`);
-            logger_1.default.info(`   💰 Капитал: ${stats.equity.toFixed(2)} USDT`);
+            logger_1.default.info(`📊 === ULTIMATE PUMP HUNTER СТАТИСТИКА ===`);
+            logger_1.default.info(`   💰 Капитал: ${stats.equity.toFixed(2)} USDT (старт: ${stats.initialEquity})`);
+            logger_1.default.info(`   🚀 Общий рост: ${stats.totalReturn.toFixed(1)}% | Мультипликатор: ${stats.growthMultiplier.toFixed(2)}x`);
             logger_1.default.info(`   📈 Дневная прибыль: ${stats.dailyReturn.toFixed(2)}%`);
             logger_1.default.info(`   🎯 Сделок: ${stats.totalTrades} | WinRate: ${(stats.winRate * 100).toFixed(1)}%`);
             logger_1.default.info(`   ⏱️ Следующая сделка через: ${Math.round(stats.nextTradeIn / 60000)} мин`);
+            if (stats.compoundActive) {
+                logger_1.default.info(`   📈 СЛОЖНЫЙ ПРОЦЕНТ АКТИВЕН: Увеличенные позиции`);
+            }
+            if (stats.consecutiveWins > 0) {
+                logger_1.default.info(`   🔥 СЕРИЯ ПОБЕД: ${stats.consecutiveWins} подряд`);
+            }
+            if (stats.isConservativeMode) {
+                logger_1.default.info(`   🛡️ КОНСЕРВАТИВНЫЙ РЕЖИМ: Просадка ${stats.currentDrawdown.toFixed(1)}%`);
+            }
             if (stats.openPosition > 0) {
-                logger_1.default.info(`   🔥 АКТИВНАЯ ПОЗИЦИЯ`);
+                logger_1.default.info(`   ⚡ АКТИВНАЯ ПОЗИЦИЯ`);
             }
         }, 30000);
         // Сброс дневной статистики в полночь

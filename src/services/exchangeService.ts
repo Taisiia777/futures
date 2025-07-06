@@ -501,17 +501,22 @@ export class ExchangeService {
     return this.sendSignedRequest('/fapi/v1/openOrders', params);
   }
 
-  // Получение свечей (klines) с retry механизмом
+  // Получение свечей (klines) с улучшенным retry механизмом
   async getKlines(symbol: string, interval: string, limit: number = 500): Promise<any[]> {
-    const maxRetries = 3;
-    const retryDelay = 1000; // 1 секунда
+    const maxRetries = 5; // Увеличено до 5 попыток
+    const baseRetryDelay = 500; // Базовая задержка 0.5 секунды
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const response = await axios.get(`${this.baseUrl}/fapi/v1/klines`, {
           params: { symbol, interval, limit },
-          timeout: 10000 // 10 секунд таймаут
+          timeout: 15000 // Увеличен таймаут до 15 секунд
         });
+        
+        // Если успешно получили данные - логируем только для первой попытки после ошибок
+        if (attempt > 1) {
+          logger.info(`✅ Восстановлено соединение с Binance для ${symbol} (попытка ${attempt})`);
+        }
         
         return response.data.map((kline: any[]) => ({
           openTime: kline[0],
@@ -531,16 +536,19 @@ export class ExchangeService {
         const isNetworkError = error.code === 'ECONNRESET' || 
                                error.code === 'ETIMEDOUT' || 
                                error.code === 'EHOSTUNREACH' ||
-                               error.code === 'ENOTFOUND';
+                               error.code === 'ENOTFOUND' ||
+                               error.message?.includes('timeout');
         
         if (isNetworkError && !isLastAttempt) {
-          logger.warn(`Попытка ${attempt}/${maxRetries} для ${symbol} неудачна, повтор через ${retryDelay}мс`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+          // Экспоненциальная задержка: 0.5s, 1s, 2s, 4s, 8s
+          const delay = baseRetryDelay * Math.pow(2, attempt - 1);
+          logger.warn(`🔄 Попытка ${attempt}/${maxRetries} для ${symbol} неудачна, повтор через ${delay}мс`);
+          await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
         
         if (isLastAttempt) {
-          logger.error(`Ошибка получения свечей для ${symbol} после ${maxRetries} попыток: ${error.message}`);
+          logger.error(`❌ Критическая ошибка получения данных для ${symbol} после ${maxRetries} попыток: ${error.message}`);
         }
         throw error;
       }
@@ -549,31 +557,75 @@ export class ExchangeService {
     return []; // Fallback, не должно достигаться
   }
 
-  // Получение текущей цены
+  // Получение текущей цены с retry механизмом
   async getCurrentPrice(symbol: string): Promise<number> {
-    try {
-      const response = await axios.get(`${this.baseUrl}/fapi/v1/ticker/price`, {
-        params: { symbol }
-      });
-      
-      return parseFloat(response.data.price);
-    } catch (error: any) {
-      logger.error(`Ошибка получения цены для ${symbol}: ${error.message}`);
-      throw error;
+    const maxRetries = 3;
+    const baseRetryDelay = 500;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await axios.get(`${this.baseUrl}/fapi/v1/ticker/price`, {
+          params: { symbol },
+          timeout: 10000
+        });
+        
+        return parseFloat(response.data.price);
+      } catch (error: any) {
+        const isLastAttempt = attempt === maxRetries;
+        const isNetworkError = error.code === 'ECONNRESET' || 
+                               error.code === 'ETIMEDOUT' || 
+                               error.code === 'EHOSTUNREACH' ||
+                               error.message?.includes('timeout');
+        
+        if (isNetworkError && !isLastAttempt) {
+          const delay = baseRetryDelay * Math.pow(2, attempt - 1);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        if (isLastAttempt) {
+          logger.error(`❌ Ошибка получения цены для ${symbol} после ${maxRetries} попыток: ${error.message}`);
+        }
+        throw error;
+      }
     }
+    
+    throw new Error('Unreachable code');
   }
 
-  // Получение 24h статистики
+  // Получение 24h статистики с retry механизмом
   async getTicker24hr(symbol: string): Promise<any> {
-    try {
-      const response = await axios.get(`${this.baseUrl}/fapi/v1/ticker/24hr`, {
-        params: { symbol }
-      });
-      
-      return response.data;
-    } catch (error: any) {
-      logger.error(`Ошибка получения 24h статистики для ${symbol}: ${error.message}`);
-      throw error;
+    const maxRetries = 3;
+    const baseRetryDelay = 500;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await axios.get(`${this.baseUrl}/fapi/v1/ticker/24hr`, {
+          params: { symbol },
+          timeout: 10000
+        });
+        
+        return response.data;
+      } catch (error: any) {
+        const isLastAttempt = attempt === maxRetries;
+        const isNetworkError = error.code === 'ECONNRESET' || 
+                               error.code === 'ETIMEDOUT' || 
+                               error.code === 'EHOSTUNREACH' ||
+                               error.message?.includes('timeout');
+        
+        if (isNetworkError && !isLastAttempt) {
+          const delay = baseRetryDelay * Math.pow(2, attempt - 1);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        if (isLastAttempt) {
+          logger.error(`❌ Ошибка получения 24h статистики для ${symbol} после ${maxRetries} попыток: ${error.message}`);
+        }
+        throw error;
+      }
     }
+    
+    throw new Error('Unreachable code');
   }
 }

@@ -441,56 +441,117 @@ class ExchangeService {
             params.symbol = symbol;
         return this.sendSignedRequest('/fapi/v1/openOrders', params);
     }
-    // Получение свечей (klines)
+    // Получение свечей (klines) с улучшенным retry механизмом
     async getKlines(symbol, interval, limit = 500) {
-        try {
-            const response = await axios_1.default.get(`${this.baseUrl}/fapi/v1/klines`, {
-                params: { symbol, interval, limit }
-            });
-            return response.data.map((kline) => ({
-                openTime: kline[0],
-                open: kline[1],
-                high: kline[2],
-                low: kline[3],
-                close: kline[4],
-                volume: kline[5],
-                closeTime: kline[6],
-                quoteAssetVolume: kline[7],
-                numberOfTrades: kline[8],
-                takerBuyBaseAssetVolume: kline[9],
-                takerBuyQuoteAssetVolume: kline[10]
-            }));
+        const maxRetries = 5; // Увеличено до 5 попыток
+        const baseRetryDelay = 500; // Базовая задержка 0.5 секунды
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await axios_1.default.get(`${this.baseUrl}/fapi/v1/klines`, {
+                    params: { symbol, interval, limit },
+                    timeout: 15000 // Увеличен таймаут до 15 секунд
+                });
+                // Если успешно получили данные - логируем только для первой попытки после ошибок
+                if (attempt > 1) {
+                    logger_1.default.info(`✅ Восстановлено соединение с Binance для ${symbol} (попытка ${attempt})`);
+                }
+                return response.data.map((kline) => ({
+                    openTime: kline[0],
+                    open: kline[1],
+                    high: kline[2],
+                    low: kline[3],
+                    close: kline[4],
+                    volume: kline[5],
+                    closeTime: kline[6],
+                    quoteAssetVolume: kline[7],
+                    numberOfTrades: kline[8],
+                    takerBuyBaseAssetVolume: kline[9],
+                    takerBuyQuoteAssetVolume: kline[10]
+                }));
+            }
+            catch (error) {
+                const isLastAttempt = attempt === maxRetries;
+                const isNetworkError = error.code === 'ECONNRESET' ||
+                    error.code === 'ETIMEDOUT' ||
+                    error.code === 'EHOSTUNREACH' ||
+                    error.code === 'ENOTFOUND' ||
+                    error.message?.includes('timeout');
+                if (isNetworkError && !isLastAttempt) {
+                    // Экспоненциальная задержка: 0.5s, 1s, 2s, 4s, 8s
+                    const delay = baseRetryDelay * Math.pow(2, attempt - 1);
+                    logger_1.default.warn(`🔄 Попытка ${attempt}/${maxRetries} для ${symbol} неудачна, повтор через ${delay}мс`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                if (isLastAttempt) {
+                    logger_1.default.error(`❌ Критическая ошибка получения данных для ${symbol} после ${maxRetries} попыток: ${error.message}`);
+                }
+                throw error;
+            }
         }
-        catch (error) {
-            logger_1.default.error(`Ошибка получения свечей для ${symbol}: ${error.message}`);
-            throw error;
-        }
+        return []; // Fallback, не должно достигаться
     }
-    // Получение текущей цены
+    // Получение текущей цены с retry механизмом
     async getCurrentPrice(symbol) {
-        try {
-            const response = await axios_1.default.get(`${this.baseUrl}/fapi/v1/ticker/price`, {
-                params: { symbol }
-            });
-            return parseFloat(response.data.price);
+        const maxRetries = 3;
+        const baseRetryDelay = 500;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await axios_1.default.get(`${this.baseUrl}/fapi/v1/ticker/price`, {
+                    params: { symbol },
+                    timeout: 10000
+                });
+                return parseFloat(response.data.price);
+            }
+            catch (error) {
+                const isLastAttempt = attempt === maxRetries;
+                const isNetworkError = error.code === 'ECONNRESET' ||
+                    error.code === 'ETIMEDOUT' ||
+                    error.code === 'EHOSTUNREACH' ||
+                    error.message?.includes('timeout');
+                if (isNetworkError && !isLastAttempt) {
+                    const delay = baseRetryDelay * Math.pow(2, attempt - 1);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                if (isLastAttempt) {
+                    logger_1.default.error(`❌ Ошибка получения цены для ${symbol} после ${maxRetries} попыток: ${error.message}`);
+                }
+                throw error;
+            }
         }
-        catch (error) {
-            logger_1.default.error(`Ошибка получения цены для ${symbol}: ${error.message}`);
-            throw error;
-        }
+        throw new Error('Unreachable code');
     }
-    // Получение 24h статистики
+    // Получение 24h статистики с retry механизмом
     async getTicker24hr(symbol) {
-        try {
-            const response = await axios_1.default.get(`${this.baseUrl}/fapi/v1/ticker/24hr`, {
-                params: { symbol }
-            });
-            return response.data;
+        const maxRetries = 3;
+        const baseRetryDelay = 500;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await axios_1.default.get(`${this.baseUrl}/fapi/v1/ticker/24hr`, {
+                    params: { symbol },
+                    timeout: 10000
+                });
+                return response.data;
+            }
+            catch (error) {
+                const isLastAttempt = attempt === maxRetries;
+                const isNetworkError = error.code === 'ECONNRESET' ||
+                    error.code === 'ETIMEDOUT' ||
+                    error.code === 'EHOSTUNREACH' ||
+                    error.message?.includes('timeout');
+                if (isNetworkError && !isLastAttempt) {
+                    const delay = baseRetryDelay * Math.pow(2, attempt - 1);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                if (isLastAttempt) {
+                    logger_1.default.error(`❌ Ошибка получения 24h статистики для ${symbol} после ${maxRetries} попыток: ${error.message}`);
+                }
+                throw error;
+            }
         }
-        catch (error) {
-            logger_1.default.error(`Ошибка получения 24h статистики для ${symbol}: ${error.message}`);
-            throw error;
-        }
+        throw new Error('Unreachable code');
     }
 }
 exports.ExchangeService = ExchangeService;

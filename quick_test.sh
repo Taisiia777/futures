@@ -45,7 +45,19 @@ echo -e "${YELLOW}💡 Это проверка работоспособност�
 echo ""
 
 # Запуск с таймаутом в 1 минуту
-timeout 60s npx ts-node night_test_runner.ts 0.017 2>&1 | tee "logs/quick_test_$(date +%Y%m%d_%H%M%S).log"
+# Запуск с таймаутом в 1 минуту (совместимость с macOS)
+if command -v gtimeout &> /dev/null; then
+    gtimeout 60s npx ts-node night_test_runner.ts 0.017 2>&1 | tee "logs/quick_test_$(date +%Y%m%d_%H%M%S).log"
+elif command -v timeout &> /dev/null; then
+    timeout 60s npx ts-node night_test_runner.ts 0.017 2>&1 | tee "logs/quick_test_$(date +%Y%m%d_%H%M%S).log"
+else
+    echo -e "${YELLOW}⚠️ Запуск без timeout, остановите вручную через 1 минуту (Ctrl+C)${NC}"
+    npx ts-node night_test_runner.ts 0.017 2>&1 | tee "logs/quick_test_$(date +%Y%m%d_%H%M%S).log" &
+    TEST_PID=$!
+    sleep 60
+    kill -TERM $TEST_PID 2>/dev/null
+    wait $TEST_PID 2>/dev/null
+fi
 
 EXIT_CODE=$?
 

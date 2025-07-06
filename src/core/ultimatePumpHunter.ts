@@ -1,35 +1,6 @@
 // 🎯 ULTIMATE PUMP HUNTER - МАКСИМАЛЬНЫЙ ВИНРЕЙТ И ПРОФИТ
-import { ExchangeService } from '../services/exchangeService';    for (const symbol of symbols) {
-      try {
-        // Проверяем кулдаун для конкретного символа
-        const lastSymbolTrade = this.symbolLastTrade.get(symbol) || 0;
-        if (Date.now() - lastSymbolTrade < this.MIN_TIME_BETWEEN_SAME_SYMBOL) {
-          continue;
-        }
-        
-        const signal = await this.analyzeUltimateSignal(symbol);
-        
-        if (signal.confidence > maxConfidence && signal.confidence >= this.MIN_CONFIDENCE) {
-          maxConfidence = signal.confidence;
-          bestSignal = { symbol, signal };
-        }
-      } catch (error: any) {
-        // Различаем типы ошибок
-        const isNetworkError = error.message.includes('ETIMEDOUT') || 
-                               error.message.includes('ECONNRESET') || 
-                               error.message.includes('EHOSTUNREACH');
-        
-        if (isNetworkError) {
-          // Сетевые ошибки логируем как предупреждения и продолжаем
-          logger.warn(`🌐 Сетевая ошибка для ${symbol}, пропускаем: ${error.message}`);
-        } else {
-          // Другие ошибки логируем как ошибки
-          logger.error(`❌ Ошибка анализа сигнала для ${symbol}: ${error.message}`);
-        }
-        // В любом случае продолжаем со следующим символом
-        continue;
-      }
-    }m '../utils/logger';
+import { ExchangeService } from '../services/exchangeService';
+import logger from '../utils/logger';
 
 interface PumpSignal {
   strength: number;
@@ -59,13 +30,13 @@ export class UltimatePumpHunter {
   private readonly STOP_LOSS = 0.012;                  // 1.2% стоп-лосс (120% потеря)
   private readonly MAX_POSITION_TIME = 3 * 60 * 1000;  // 3 минуты максимум
   private readonly MIN_PUMP_SIZE = 0.028;              // 2.8% минимальный памп (ПОВЫШЕНО!)
-  private readonly COOLDOWN_TIME = 45 * 60 * 1000;     // 45 минут между сделками
+  private readonly COOLDOWN_TIME = 0;                  // БЕЗ КУЛДАУНА - максимальная агрессивность!
   
   // НОВЫЕ ФИЛЬТРЫ ДЛЯ МАКСИМАЛЬНОГО КАЧЕСТВА
   private readonly MIN_VOLUME_SPIKE = 6.0;             // Минимум 6x объем
   private readonly MIN_CONSECUTIVE_MOVES = 4;          // Минимум 4 движения подряд
-  private readonly MAX_DAILY_TRADES = 6;               // Максимум 6 сделок в день
-  private readonly MIN_TIME_BETWEEN_SAME_SYMBOL = 2 * 60 * 60 * 1000; // 2 часа на тот же символ
+  private readonly MAX_DAILY_TRADES = 12;              // Увеличиваем до 12 сделок в день (БЕЗ КУЛДАУНА!)
+  private readonly MIN_TIME_BETWEEN_SAME_SYMBOL = 30 * 60 * 1000; // Сокращаем до 30 минут на тот же символ
   
   // СЛОЖНЫЙ ПРОЦЕНТ И МАСШТАБИРОВАНИЕ
   private readonly COMPOUND_THRESHOLD = 1.5;           // При 150% роста увеличиваем позиции
@@ -106,7 +77,7 @@ export class UltimatePumpHunter {
     logger.info(`⚡ Плечо: ${this.LEVERAGE}x | Базовая позиция: ${this.POSITION_SIZE * 100}%`);
     logger.info(`🎯 Target: ${this.TARGET_PROFIT * 100}% | Stop: ${this.STOP_LOSS * 100}%`);
     logger.info(`📈 СЛОЖНЫЙ ПРОЦЕНТ: Активен с автомасштабированием`);
-    logger.info(`⏱️ Кулдаун: ${this.COOLDOWN_TIME / 60000} минут между сделками`);
+    logger.info(`🚀 БЕЗ КУЛДАУНА: Максимальная агрессивность! До ${this.MAX_DAILY_TRADES} сделок в день!`);
     logger.info(`⚡ Плечо: ${this.LEVERAGE}x | Позиция: ${this.POSITION_SIZE * 100}%`);
     logger.info(`🎯 Target: ${this.TARGET_PROFIT * 100}% | Stop: ${this.STOP_LOSS * 100}%`);
     logger.info(`⏱️ Кулдаун: ${this.COOLDOWN_TIME / 60000} минут между сделками`);
@@ -132,7 +103,16 @@ export class UltimatePumpHunter {
       }
       
       // Получаем топ криптовалют в порядке приоритета (волатильные первыми)
-      const topSymbols = ['SOLUSDT', 'ETHUSDT', 'BNBUSDT', 'BTCUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT'];
+      const topSymbols = [
+        'SOLUSDT',   // #1 - Solana: Лучшая волатильность для пампов
+        'AVAXUSDT',  // #2 - Avalanche: Сильные импульсные движения  
+        'ADAUSDT',   // #3 - Cardano: Популярен, частые пампы
+        'LINKUSDT',  // #4 - Chainlink: Резкие движения
+        'ETHUSDT',   // #5 - Ethereum: Надежность + движения
+        'DOTUSDT',   // #6 - Polkadot: Высокая волатильность
+        'BNBUSDT',   // #7 - Binance Coin: Сильные движения
+        'BTCUSDT'    // #8 - Bitcoin: Основа рынка, крупные движения
+      ];
       const bestSignal = await this.findUltimateSignal(topSymbols);
       
       if (bestSignal && bestSignal.signal.confidence >= this.MIN_CONFIDENCE) {
@@ -163,7 +143,20 @@ export class UltimatePumpHunter {
           bestSignal = { symbol, signal };
         }
       } catch (error: any) {
-        logger.error(`⚠️ Ошибка анализа ${symbol}: ${error.message}`);
+        // Проверяем тип ошибки
+        const isNetworkError = error.code === 'ECONNRESET' || 
+                               error.code === 'ETIMEDOUT' || 
+                               error.code === 'EHOSTUNREACH' ||
+                               error.message?.includes('read ETIMEDOUT') ||
+                               error.message?.includes('read ECONNRESET') ||
+                               error.message?.includes('read EHOSTUNREACH');
+        
+        if (isNetworkError) {
+          logger.warn(`🌐 Сетевая ошибка для ${symbol}: ${error.message} - пропускаем и продолжаем`);
+        } else {
+          logger.error(`❌ Ошибка анализа сигнала для ${symbol}: ${error.message}`);
+        }
+        // Продолжаем к следующему символу
       }
     }
     
@@ -244,7 +237,23 @@ export class UltimatePumpHunter {
       };
       
     } catch (error: any) {
-      logger.error(`❌ Ошибка анализа сигнала для ${symbol}: ${error.message}`);
+      // Проверяем тип ошибки - сетевые ошибки не критичны
+      const isNetworkError = error.code === 'ECONNRESET' || 
+                             error.code === 'ETIMEDOUT' || 
+                             error.code === 'EHOSTUNREACH' ||
+                             error.message?.includes('read ETIMEDOUT') ||
+                             error.message?.includes('read ECONNRESET') ||
+                             error.message?.includes('read EHOSTUNREACH');
+      
+      if (isNetworkError) {
+        // Сетевые ошибки - это временные проблемы, не критично
+        logger.debug(`🌐 Временная сетевая ошибка для ${symbol}: ${error.message}`);
+      } else {
+        // Логические ошибки более серьезны
+        logger.error(`❌ Ошибка анализа сигнала для ${symbol}: ${error.message}`);
+      }
+      
+      // Возвращаем пустой сигнал, чтобы не прерывать работу бота
       return { strength: 0, confidence: 0, direction: 'long', expectedMove: 0, timeframe: 0 };
     }
   }
