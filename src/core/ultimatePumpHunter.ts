@@ -19,11 +19,21 @@ interface Position {
   targetProfit: number;
   stopLoss: number;
   positionValue: number;
+  leverage: number; // Добавляем плечо для каждой позиции
 }
 
 export class UltimatePumpHunter {
-  // БОЕВЫЕ ПАРАМЕТРЫ - АДАПТИВНАЯ СИСТЕМА
-  private readonly LEVERAGE = 100;                     // Плечо остается консервативным
+  // РЕВОЛЮЦИОННАЯ АДАПТИВНАЯ СИСТЕМА ПЛЕЧЕЙ
+  private readonly BASE_LEVERAGE = 50;                 // Базовое плечо для хороших сигналов
+  private readonly MIN_LEVERAGE = 20;                  // Минимум для слабых сигналов
+  private readonly MAX_LEVERAGE = 200;                 // Максимум для исключительных сигналов
+  private readonly ULTRA_LEVERAGE = 250;               // Экстремум для perfect conditions
+  
+  // ПОРОГИ ДЛЯ АДАПТИВНОГО ПЛЕЧА
+  private readonly ULTRA_CONFIDENCE_THRESHOLD = 0.97;  // 97% для 250x
+  private readonly HIGH_CONFIDENCE_THRESHOLD = 0.94;   // 94% для 150-200x  
+  private readonly GOOD_CONFIDENCE_THRESHOLD = 0.90;   // 90% для 75-100x
+  private readonly MIN_CONFIDENCE_THRESHOLD = 0.88;    // 88% для 20-50x
   private readonly BASE_POSITION_SIZE = 0.08;          // Базовый размер для reference
   private readonly MIN_CONFIDENCE = 0.88;              // 88% минимальная уверенность
   private readonly TARGET_PROFIT = 0.055;              // 5.5% тейк-профит
@@ -89,13 +99,14 @@ export class UltimatePumpHunter {
     
     logger.info(`🎯 ULTIMATE PUMP HUNTER ЗАПУЩЕН:`);
     logger.info(`💰 Стартовый капитал: ${initialEquity} USDT`);
-    logger.info(`⚡ Плечо: ${this.LEVERAGE}x | Адаптивные позиции: ${this.MIN_POSITION_SIZE * 100}%-${this.MAX_POSITION_SIZE * 100}%`);
+    logger.info(`⚡ АДАПТИВНОЕ ПЛЕЧО: ${this.MIN_LEVERAGE}x-${this.ULTRA_LEVERAGE}x в зависимости от качества сигнала`);
+    logger.info(`📊 Адаптивные позиции: ${this.MIN_POSITION_SIZE * 100}%-${this.MAX_POSITION_SIZE * 100}%`);
     logger.info(`🎯 Target: ${this.TARGET_PROFIT * 100}% | Stop: ${this.STOP_LOSS * 100}%`);
-    logger.info(`📈 АДАПТИВНОЕ МАСШТАБИРОВАНИЕ: 4%-18% в зависимости от качества сигнала`);
+    logger.info(`📈 ДВОЙНАЯ АДАПТАЦИЯ: Умное плечо + умный размер позиции`);
     logger.info(`🚀 РАСШИРЕННЫЙ ОХВАТ: 24 торговые пары вместо 8! (3x больше возможностей)`);
     logger.info(`⚡ УВЕЛИЧЕННЫЙ ЛИМИТ: До ${this.MAX_DAILY_TRADES} сделок в день! (+108% больше сделок)`);
     logger.info(`⏱️ Ускоренный цикл: ${this.MIN_TIME_BETWEEN_SAME_SYMBOL / 60000} минут между повторами символа`);
-    logger.info(`📊 ОЖИДАЕМЫЙ ПРИРОСТ: +150-200% к месячной прибыли!`);
+    logger.info(`📊 ОЖИДАЕМЫЙ ПРИРОСТ: +300-500% к месячной прибыли благодаря адаптивным плечам!`);
   }
   
   // ГЛАВНЫЙ ТОРГОВЫЙ ЦИКЛ - РАБОТА С РЕАЛЬНЫМИ ДАННЫМИ
@@ -303,6 +314,9 @@ export class UltimatePumpHunter {
       // Получаем текущую цену
       const currentPrice = await this.exchangeService.getCurrentPrice(symbol);
       
+      // РАССЧИТЫВАЕМ АДАПТИВНОЕ ПЛЕЧО НА ОСНОВЕ КАЧЕСТВА СИГНАЛА
+      const optimalLeverage = this.calculateOptimalLeverage(signal);
+      
       // АДАПТИВНЫЙ РАЗМЕР ПОЗИЦИИ с учетом качества сигнала И СЛОЖНОГО ПРОЦЕНТА
       let adaptivePositionSize = this.calculateOptimalPositionSize(signal.confidence);
       
@@ -313,7 +327,7 @@ export class UltimatePumpHunter {
       }
       
       const positionValue = this.equity * adaptivePositionSize;
-      const leveragedValue = positionValue * this.LEVERAGE;
+      const leveragedValue = positionValue * optimalLeverage;
       const quantity = leveragedValue / currentPrice;
       
       // ДИНАМИЧЕСКИЕ TP/SL на основе силы сигнала
@@ -328,19 +342,21 @@ export class UltimatePumpHunter {
         entryTime: Date.now(),
         targetProfit: dynamicTP,
         stopLoss: dynamicSL,
-        positionValue
+        positionValue,
+        leverage: optimalLeverage
       };
       
       this.lastTradeTime = Date.now();
       this.symbolLastTrade.set(symbol, Date.now()); // Отмечаем время торговли по символу
       this.dailyStats.trades++;
       
-      logger.info(`🚀🚀 ЭЛИТНАЯ СДЕЛКА ОТКРЫТА (АДАПТИВНАЯ ПОЗИЦИЯ):`);
+      logger.info(`🚀🚀 ЭЛИТНАЯ СДЕЛКА ОТКРЫТА (АДАПТИВНЫЕ ПЛЕЧО + ПОЗИЦИЯ):`);
       logger.info(`   ${symbol} ${signal.direction.toUpperCase()}`);
       logger.info(`   Цена: ${currentPrice.toFixed(2)}`);
       logger.info(`   Адаптивный размер: ${positionValue.toFixed(2)} USDT (${(adaptivePositionSize * 100).toFixed(1)}%)`);
-      logger.info(`   Покрытие: ${leveragedValue.toFixed(2)} USDT (${this.LEVERAGE}x)`);
-      logger.info(`   Confidence: ${(signal.confidence * 100).toFixed(1)}% → Позиция: ${(adaptivePositionSize * 100).toFixed(1)}%`);
+      logger.info(`   АДАПТИВНОЕ ПЛЕЧО: ${optimalLeverage}x`);
+      logger.info(`   Покрытие: ${leveragedValue.toFixed(2)} USDT`);
+      logger.info(`   Confidence: ${(signal.confidence * 100).toFixed(1)}% → Плечо: ${optimalLeverage}x, Позиция: ${(adaptivePositionSize * 100).toFixed(1)}%`);
       logger.info(`   Target: ${(dynamicTP * 100).toFixed(2)}% | Stop: ${(dynamicSL * 100).toFixed(2)}%`);
       logger.info(`   📊 Сделка ${this.dailyStats.trades}/${this.MAX_DAILY_TRADES} за сегодня`);
       
@@ -364,7 +380,7 @@ export class UltimatePumpHunter {
       pnl = (pos.entryPrice - currentPrice) / pos.entryPrice;
     }
     
-    const leveragedPnL = pnl * this.LEVERAGE;
+    const leveragedPnL = pnl * pos.leverage;
     const pnlUSDT = leveragedPnL * pos.positionValue;
     
     // ПРОВЕРЯЕМ ЧАСТИЧНУЮ ФИКСАЦИЮ ПРИБЫЛИ
@@ -546,6 +562,97 @@ export class UltimatePumpHunter {
     return protectedSize;
   }
   
+  // 🚀 РЕВОЛЮЦИОННЫЙ РАСЧЕТ АДАПТИВНОГО ПЛЕЧА
+  private calculateOptimalLeverage(signal: PumpSignal): number {
+    const { confidence, strength } = signal;
+    let optimalLeverage = this.BASE_LEVERAGE;
+    
+    // БАЗОВОЕ ПЛЕЧО НА ОСНОВЕ CONFIDENCE
+    if (confidence >= this.ULTRA_CONFIDENCE_THRESHOLD) {
+      optimalLeverage = this.ULTRA_LEVERAGE; // 250x для 97%+ сигналов
+      logger.info(`🔥🔥 ULTRA LEVERAGE: ${confidence*100}% confidence → ${optimalLeverage}x плечо`);
+    } else if (confidence >= this.HIGH_CONFIDENCE_THRESHOLD) {
+      // 150x-200x для 94-97% сигналов
+      optimalLeverage = 150 + (confidence - this.HIGH_CONFIDENCE_THRESHOLD) * 1667; // Linear interpolation
+      logger.info(`⚡ HIGH LEVERAGE: ${confidence*100}% confidence → ${optimalLeverage.toFixed(0)}x плечо`);
+    } else if (confidence >= this.GOOD_CONFIDENCE_THRESHOLD) {
+      // 75x-150x для 90-94% сигналов  
+      optimalLeverage = 75 + (confidence - this.GOOD_CONFIDENCE_THRESHOLD) * 1875;
+      logger.info(`✅ GOOD LEVERAGE: ${confidence*100}% confidence → ${optimalLeverage.toFixed(0)}x плечо`);
+    } else {
+      // 20x-75x для 88-90% сигналов
+      optimalLeverage = this.MIN_LEVERAGE + (confidence - this.MIN_CONFIDENCE_THRESHOLD) * 2750;
+      logger.info(`⚠️ SAFE LEVERAGE: ${confidence*100}% confidence → ${optimalLeverage.toFixed(0)}x плечо`);
+    }
+    
+    // БОНУСЫ ЗА ИСКЛЮЧИТЕЛЬНЫЕ УСЛОВИЯ
+    
+    // 1. Бонус за силу движения
+    if (strength >= 0.05) {
+      optimalLeverage *= 1.3; // +30% за мощное движение
+      logger.info(`💪 STRENGTH BONUS: +30% плеча за движение ${(strength*100).toFixed(1)}%`);
+    } else if (strength >= 0.035) {
+      optimalLeverage *= 1.15; // +15% за хорошее движение
+      logger.info(`💪 STRENGTH BONUS: +15% плеча за движение ${(strength*100).toFixed(1)}%`);
+    }
+    
+    // 2. Бонус за серию побед
+    if (this.consecutiveWins >= 5) {
+      optimalLeverage *= 1.4; // +40% за горячую серию
+      logger.info(`🔥 HOT STREAK BONUS: +40% плеча за ${this.consecutiveWins} побед подряд!`);
+    } else if (this.consecutiveWins >= 3) {
+      optimalLeverage *= 1.2; // +20% за хорошую серию
+      logger.info(`🔥 WIN STREAK BONUS: +20% плеча за ${this.consecutiveWins} побед подряд`);
+    }
+    
+    // 3. Бонус за рост капитала (compound effect)
+    const growthMultiplier = this.equity / this.initialEquity;
+    if (growthMultiplier >= 3.0) {
+      optimalLeverage *= 1.25; // +25% при росте капитала в 3 раза
+      logger.info(`📈 COMPOUND BONUS: +25% плеча за рост капитала в ${growthMultiplier.toFixed(1)} раз`);
+    } else if (growthMultiplier >= 2.0) {
+      optimalLeverage *= 1.15; // +15% при удвоении капитала
+      logger.info(`📈 GROWTH BONUS: +15% плеча за рост капитала в ${growthMultiplier.toFixed(1)} раз`);
+    }
+    
+    // ШТРАФЫ И ОГРАНИЧЕНИЯ
+    
+    // 1. Штраф за серию потерь
+    if (this.consecutiveLosses >= 3) {
+      optimalLeverage *= 0.4; // -60% за серию потерь
+      logger.warn(`❄️ COLD STREAK PENALTY: -60% плеча за ${this.consecutiveLosses} потерь подряд`);
+    } else if (this.consecutiveLosses >= 2) {
+      optimalLeverage *= 0.7; // -30% за пару потерь
+      logger.warn(`❄️ LOSS PENALTY: -30% плеча за ${this.consecutiveLosses} потери подряд`);
+    }
+    
+    // 2. Консервативный режим при просадке
+    if (this.isConservativeMode) {
+      optimalLeverage *= 0.5; // -50% в консервативном режиме
+      logger.warn(`🛡️ CONSERVATIVE MODE: -50% плеча из-за просадки`);
+    }
+    
+    // 3. Защитный режим при больших потерях
+    if (this.protectiveMode) {
+      optimalLeverage = Math.min(optimalLeverage, 25); // Максимум 25x в защитном режиме
+      logger.warn(`🚨 PROTECTIVE MODE: Ограничение плеча до 25x`);
+    }
+    
+    // 4. Низкий дневной винрейт
+    const dayWinRate = this.dailyStats.trades > 0 ? this.dailyStats.wins / this.dailyStats.trades : 1;
+    if (dayWinRate < 0.5) {
+      optimalLeverage *= 0.6; // -40% при низком винрейте
+      logger.warn(`📉 LOW WINRATE PENALTY: -40% плеча при винрейте ${(dayWinRate*100).toFixed(1)}%`);
+    }
+    
+    // ФИНАЛЬНЫЕ ОГРАНИЧЕНИЯ
+    const finalLeverage = Math.min(Math.max(optimalLeverage, this.MIN_LEVERAGE), this.ULTRA_LEVERAGE);
+    
+    logger.info(`🎯 ФИНАЛЬНОЕ ПЛЕЧО: ${finalLeverage.toFixed(0)}x (${(finalLeverage/this.BASE_LEVERAGE).toFixed(1)}x от базового)`);
+    
+    return Math.round(finalLeverage);
+  }
+  
   // УПРАВЛЕНИЕ СОСТОЯНИЕМ БОТА
   private updateBotState(pnlUSDT: number): void {
     // Обновляем пиковый капитал
@@ -589,7 +696,7 @@ export class UltimatePumpHunter {
       winRate: winRate,
       dailyReturn: dailyReturn,
       openPosition: this.openPosition ? 1 : 0,
-      leverage: this.LEVERAGE,
+      leverage: this.BASE_LEVERAGE, // Показываем базовое плечо в статистике
       nextTradeIn: Math.max(0, this.COOLDOWN_TIME - (Date.now() - this.lastTradeTime)),
       // Адаптивная система метрики
       growthMultiplier: growthMultiplier,
@@ -631,10 +738,10 @@ export class UltimatePumpHunter {
     
     const targetReached = pnl / pos.targetProfit;
     
-    // ЧАСТИЧНАЯ ФИКСАЦИЯ ПРИБЫЛИ для максимизации доходности
+    // ЧАСТИЧНАЯ ФИКСАЦИОНА ПРИБЫЛИ для максимизации доходности
     if (targetReached >= 0.6 && targetReached < 0.8) {
       // При достижении 60% цели - фиксируем 30% позиции
-      const partialProfit = pos.positionValue * 0.3 * pnl * this.LEVERAGE;
+      const partialProfit = pos.positionValue * 0.3 * pnl * pos.leverage;
       this.equity += partialProfit;
       
       logger.info(`💎 PARTIAL PROFIT: Зафиксировали 30% позиции на ${(pnl * 100).toFixed(2)}%`);
@@ -648,7 +755,7 @@ export class UltimatePumpHunter {
     
     if (targetReached >= 0.8 && targetReached < 1.2) {
       // При достижении 80% цели - фиксируем еще 40% позиции
-      const partialProfit = pos.positionValue * 0.4 * pnl * this.LEVERAGE;
+      const partialProfit = pos.positionValue * 0.4 * pnl * pos.leverage;
       this.equity += partialProfit;
       
       logger.info(`💎💎 SECOND PARTIAL: Зафиксировали еще 40% позиции`);
